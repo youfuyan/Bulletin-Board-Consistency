@@ -281,8 +281,11 @@ public class Client {
         client.readline("127.0.0.1", 1099, 1);
         msg = client.getCurrentMessage();
         System.out.println(msg);
+        client.reply("127.0.0.1", 1099, 2,"This is a new reply for the article 2.");
+        client.read("127.0.0.1", 1099);
         msg = client.getCurrentMessage();
         System.out.println(msg);
+
     }
 
 }

@@ -123,6 +123,8 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
         }
 
         public ArrayList<String> getClusterIDs(){
+            this.clusterIDs.clear();
+            generateSubReplyID();
             return this.clusterIDs;
         }
 
@@ -449,7 +451,7 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
             ArrayList<String> allartIDs = new ArrayList<String>();
             for (int i=0;i<articles.size();i++){
                 if(articles.get(i).getIsReply() == false){
-                    articles.get(i).generateSubReplyID();
+                    //articles.get(i).generateSubReplyID();
                     allartIDs.addAll(articles.get(i).getClusterIDs());
                 }
             }
