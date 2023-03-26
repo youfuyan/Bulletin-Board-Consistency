@@ -173,9 +173,6 @@ public class Client {
             UDPReceiver receiver = new UDPReceiver(port, address,client);
             client.setCurrentMessage(null);
             receiver.start();
-            while(client.getCurrentMessage()==null);
-            receiver.stop();
-
         } catch (Exception e){
             e.printStackTrace();
         }
@@ -235,7 +232,34 @@ public class Client {
     }
 
     boolean readArticle(String ip, int port, int article_id){
+        boolean readarticle_status = false;
+        try{
+            readarticle_status = groupServer.readArticle(ip, port,article_id);
+            if(readarticle_status) System.out.println("Read article scuccess");
+            else System.out.println("Read article failed");
+            return readarticle_status;
 
+        }catch(RemoteException e){
+            e.printStackTrace();
+        }
+        System.out.println("Read article failed");
+        return readarticle_status;
+
+    }
+
+    boolean reply(String ip, int port,int article_id, String replyContent){
+        boolean reply_status = false;
+        try{
+            reply_status = groupServer.reply(ip, port, article_id, replyContent);
+            if(reply_status) System.out.println("Reply scuccess");
+            else System.out.println("Reply failed");
+            return reply_status;
+
+        } catch(RemoteException e){
+            e.printStackTrace();
+        }
+        System.out.print("Reply failed");
+        return reply_status;
     }
 
     public static void main(String[] args) {

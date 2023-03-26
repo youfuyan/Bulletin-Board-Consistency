@@ -50,6 +50,7 @@ public class UDPReceiver implements Runnable {
                 client.addoneUDPCount();
                 System.out.println("Current UDP count: " + client.getUDPCount());
                 System.out.println("Client " + port + " received message: " + message);
+                stop();
             } catch (IOException e) {
                 e.printStackTrace();
             }
