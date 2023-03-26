@@ -97,8 +97,8 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
         private boolean isReply;
         private int artID;
         private String artcontent;
-        private ArrayList<Article> replys;
-        private ArrayList<String> clusterIDs;
+        private ArrayList<Article> replys = new ArrayList<Article>();
+        private ArrayList<String> clusterIDs = new ArrayList<String>();
 
         public Article(int ID,String content,boolean isreply){ //ID should be generated automotically?
             this.artID = ID;
@@ -126,12 +126,14 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
             return this.clusterIDs;
         }
 
-        public void getSubReplyID(){
+        public void generateSubReplyID(){
             this.clusterIDs.add(String.valueOf(this.artID));
+            this.clusterIDs.add("-");
+            this.clusterIDs.add(String.valueOf(this.replys.size()));
             this.clusterIDs.add(";");
             if(this.replys.size()!=0){
                 for(Article subreply:this.replys){
-                   subreply.getSubReplyID();
+                   subreply.generateSubReplyID();
                    this.clusterIDs.addAll(subreply.getClusterIDs());
                 }
             }
@@ -157,10 +159,6 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
             }
         }
     
-        public int getKidsNum(){
-            return this.replys.size();
-        }
-
     }
     // private HashMap<String, ArrayList<ClientInfo>> subscriptions1;
     // private HashMap<String, ArrayList<ClientInfo>> subscriptions2;
@@ -444,18 +442,19 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
         return false;
     }
 
+    //read all the article, send all the id via UDP
     public synchronized boolean read(String ip, int port) throws RemoteException{
         try{
             boolean read_status = false;
             ArrayList<String> allartIDs = new ArrayList<String>();
             for (int i=0;i<articles.size();i++){
                 if(articles.get(i).getIsReply() == false){
-                    articles.get(i).getSubReplyID();
+                    articles.get(i).generateSubReplyID();
                     allartIDs.addAll(articles.get(i).getClusterIDs());
                 }
             }
-            String tosend = allartIDs.toString();
-            SendUDP(tosend, port, ip);
+            String tosend = allartIDs.toString().replace(", ", "");
+            SendUDP(tosend, port, ip); //sending format Article1_id,article1_kidsize;Ariticle2_id,article2_kidsize;...
             read_status = true;
             return read_status;
         } catch (Exception e){
@@ -464,6 +463,7 @@ public class GroupServerImpl extends UnicastRemoteObject implements GroupServer 
         return false;
     }
 
+    // input article id, send the fews words of the article via UDP
     public synchronized boolean readline(String ip, int port, int article_id) throws RemoteException{
         try{
             boolean readline_status = false;

@@ -204,6 +204,7 @@ public class Client {
     boolean read(String ip, int port){
         boolean read_status = false;
         try{
+            receiveUDP(port, ip, this);
             read_status = groupServer.read(ip, port);
             if(read_status) System.out.println("Read scuccess");
             else System.out.println("Read failed");
@@ -219,6 +220,7 @@ public class Client {
     boolean readline(String ip, int port, int article_id){
         boolean readline_status = false;
         try{
+            receiveUDP(port, ip, this);
             readline_status = groupServer.readline(ip, port,article_id);
             if(readline_status) System.out.println("Readline scuccess");
             else System.out.println("Readline failed");
@@ -234,6 +236,7 @@ public class Client {
     boolean readArticle(String ip, int port, int article_id){
         boolean readarticle_status = false;
         try{
+            receiveUDP(port, ip, this);
             readarticle_status = groupServer.readArticle(ip, port,article_id);
             if(readarticle_status) System.out.println("Read article scuccess");
             else System.out.println("Read article failed");
@@ -266,6 +269,20 @@ public class Client {
         Client client = new Client();
         System.out.println(client.greeting());
         System.out.println("Client ready");
-        client.ping(100, 5);
+        //client.ping(100, 5);
+        client.post("127.0.0.1", 1099, "This is a new article, the content is....");
+        client.post("127.0.0.1", 1099, "Hello, the second article is ready, the content is....");
+        client.read("127.0.0.1", 1099);
+        String msg = client.getCurrentMessage();
+        System.out.println(msg);
+        client.readArticle("127.0.0.1", 1099,2);
+        msg = client.getCurrentMessage();
+        System.out.println(msg);
+        client.readline("127.0.0.1", 1099, 1);
+        msg = client.getCurrentMessage();
+        System.out.println(msg);
+        msg = client.getCurrentMessage();
+        System.out.println(msg);
     }
+
 }
