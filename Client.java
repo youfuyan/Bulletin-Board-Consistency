@@ -1,10 +1,8 @@
 import javax.swing.*;
 import java.awt.*;
+import java.io.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.List;
 import java.util.ArrayList;
@@ -22,8 +20,13 @@ public class Client {
     private Article selectedArticle;
     private JButton btnPrevPage;
     private JButton btnNextPage;
+
+    private JLabel connectionStatusLabel;
+    private Socket connectedSocket;
     private int currentPage;
-    private int articlesPerPage = 10;
+    private int articlesPerPage = 5;
+
+    private Coordinator coordinator = new Coordinator();
 
     public static void main(String[] args) {
         EventQueue.invokeLater(() -> {
@@ -54,17 +57,33 @@ public class Client {
 
         serverList = new JComboBox<>();
         panel.add(serverList);
-        serverAddresses = new ArrayList<>();
+
+        serverAddresses = coordinator.getServerAddresses();
         // Add your server addresses and ports here
-        serverAddresses.add("127.0.0.1:8000");
-        serverAddresses.add("127.0.0.1:8001");
+
         for (String address : serverAddresses) {
             serverList.addItem(address);
         }
 
-//        postTextField = new JTextField();
-//        panel.add(postTextField);
-//        postTextField.setColumns(20);
+        // Add a JLabel to display the connection status
+        connectionStatusLabel = new JLabel("Not connected");
+        panel.add(connectionStatusLabel);
+        // Add a "Connect" button
+        JButton btnConnect = new JButton("Connect");
+        btnConnect.addActionListener(e -> {
+            if (connectedSocket != null && !connectedSocket.isClosed()) {
+                disconnectFromServer();
+            } else {
+                try {
+                    connectedSocket = connectToServer();
+                    connectionStatusLabel.setText("Connected to: " + serverList.getSelectedItem());
+                } catch (Exception ex) {
+                    connectionStatusLabel.setText("Connection failed");
+                    ex.printStackTrace();
+                }
+            }
+        });
+        panel.add(btnConnect);
 
         JButton btnPost = new JButton("Post");
         btnPost.addActionListener(e -> postArticle());
@@ -102,16 +121,16 @@ public class Client {
         JPanel navigationPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
         // Create the previous and next buttons
-        JButton prevButton = new JButton("Previous");
-        JButton nextButton = new JButton("Next");
+        btnPrevPage = new JButton("Previous");
+        btnNextPage  = new JButton("Next");
 
         // Add action listeners for the buttons
-        prevButton.addActionListener(e -> prevPage());
-        nextButton.addActionListener(e -> nextPage());
+        btnPrevPage.addActionListener(e -> prevPage());
+        btnNextPage.addActionListener(e -> nextPage());
 
         // Add the buttons to the navigation panel
-        navigationPanel.add(prevButton);
-        navigationPanel.add(nextButton);
+        navigationPanel.add(btnPrevPage);
+        navigationPanel.add(btnNextPage);
 
         // Add the navigation panel to the frame
         frame.getContentPane().add(navigationPanel, BorderLayout.SOUTH);
@@ -128,103 +147,119 @@ public class Client {
 
     }
 
-//    private void postArticle() {
-//        String title = JOptionPane.showInputDialog("Enter the title of the article:");
-//        if (title == null || title.trim().isEmpty()) {
-//            return;
-//        }
-//
-//        String content = JOptionPane.showInputDialog("Enter the content of the article:");
-//        if (content == null || content.trim().isEmpty()) {
-//            return;
-//        }
-//
-//        try {
-//            Socket socket = connectToServer();
-//            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-//            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//
-//            out.println("POST_ARTICLE");
-//            out.println(title);
-//            out.println(content);
-//
-//            String response = in.readLine();
-//            if (response.equals("SUCCESS")) {
-//                JOptionPane.showMessageDialog(null, "Article posted successfully!");
-//                refreshArticleList();
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Failed to post article. Please try again.");
-//            }
-//
-//            in.close();
-//            out.close();
-//            socket.close();
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
-private void postArticle() {
-    // Create a JPanel with a GridLayout to hold both the title and content fields
-    JPanel panel = new JPanel(new GridLayout(0, 1));
-    JLabel titleLabel = new JLabel("Enter the title of the article:");
-    JTextField titleField = new JTextField(10);
-    JLabel contentLabel = new JLabel("Enter the content of the article:");
-    JTextArea contentArea = new JTextArea(5, 20);
-    JScrollPane contentScrollPane = new JScrollPane(contentArea);
 
-    panel.add(titleLabel);
-    panel.add(titleField);
-    panel.add(contentLabel);
-    panel.add(contentScrollPane);
+    private void postArticle() {
+        // Create a JPanel with a GridLayout to hold both the title and content fields
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        JLabel titleLabel = new JLabel("Enter the title of the article:");
+        JTextField titleField = new JTextField(10);
+        JLabel contentLabel = new JLabel("Enter the content of the article:");
+        JTextArea contentArea = new JTextArea(5, 20);
+        JScrollPane contentScrollPane = new JScrollPane(contentArea);
 
-    // Show the input dialog with the panel
-    int result = JOptionPane.showConfirmDialog(null, panel, "Post an article", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        panel.add(titleLabel);
+        panel.add(titleField);
+        panel.add(contentLabel);
+        panel.add(contentScrollPane);
 
-    // If the user clicks OK, proceed with posting the article
-    if (result == JOptionPane.OK_OPTION) {
-        String title = titleField.getText().trim();
-        String content = contentArea.getText().trim();
+        // Show the input dialog with the panel
+        int result = JOptionPane.showConfirmDialog(null, panel, "Post an article", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 
-        if (title.isEmpty() || content.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Both title and content must be provided.");
-            return;
-        }
+        // If the user clicks OK, proceed with posting the article
+        if (result == JOptionPane.OK_OPTION) {
+            String title = titleField.getText().trim();
+            String content = contentArea.getText().trim();
 
-        try {
-            Socket socket = connectToServer();
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-            out.println("POST_ARTICLE");
-            out.println(title);
-            out.println(content);
-
-            String response = in.readLine();
-            if (response.equals("SUCCESS")) {
-                JOptionPane.showMessageDialog(null, "Article posted successfully!");
-                refreshArticleList();
-            } else {
-                JOptionPane.showMessageDialog(null, "Failed to post article. Please try again.");
+            if (title.isEmpty() || content.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Both title and content must be provided.");
+                return;
             }
 
-            in.close();
-            out.close();
-            socket.close();
-        } catch (Exception e) {
-            e.printStackTrace();
+            try {
+                Socket socket = connectToServer();
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                out.println("POST_ARTICLE");
+                out.println(title);
+                out.println(content);
+
+                String response = in.readLine();
+                if (response.equals("SUCCESS")) {
+                    JOptionPane.showMessageDialog(null, "Article posted successfully!");
+                    refreshArticleList();
+
+                } else {
+                    JOptionPane.showMessageDialog(null, "Failed to post article. Please try again.");
+                }
+
+                in.close();
+                out.close();
+                socket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
-}
 
 
     private void replyToArticle() {
-        // Implement the "Reply to an existing article" feature
-        // Get the selected server
+        if (selectedArticle == null) {
+            JOptionPane.showMessageDialog(null, "No article selected to reply to.");
+            return;
+        }
 
-        //Todo: Implement the "Reply to an existing article" feature
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+        JLabel titleLabel = new JLabel("Enter the title of the reply:");
+        JTextField titleField = new JTextField(10);
+        JLabel contentLabel = new JLabel("Enter the content of the reply:");
+        JTextArea contentArea = new JTextArea(5, 20);
+        JScrollPane contentScrollPane = new JScrollPane(contentArea);
 
+        panel.add(titleLabel);
+        panel.add(titleField);
+        panel.add(contentLabel);
+        panel.add(contentScrollPane);
+
+        int result = JOptionPane.showConfirmDialog(null, panel, "Reply to an article", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String title = titleField.getText().trim();
+            String content = contentArea.getText().trim();
+
+            if (title.isEmpty() || content.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Both title and content must be provided.");
+                return;
+            }
+
+            try {
+                Socket socket = connectToServer();
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+                out.println("REPLY_ARTICLE " + selectedArticle.getId());
+                out.println(title);
+                out.println(content);
+
+                String response = in.readLine();
+                if (response.equals("SUCCESS")) {
+                    JOptionPane.showMessageDialog(null, "Reply posted successfully!");
+                    refreshArticleList();
+
+                } else {
+                    JOptionPane.showMessageDialog(null, "Failed to post reply. Please try again.");
+                }
+
+                in.close();
+                out.close();
+                socket.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
 
     }
+
 
     private void prevPage() {
         if (currentPage > 0) {
@@ -247,6 +282,7 @@ private void postArticle() {
             // Send a command to the server to fetch articles for the current page
             out.println("FETCH_ARTICLES " + currentPage * articlesPerPage + " " + articlesPerPage);
             listModel.clear();
+            List<Article> articles = new ArrayList<>();
             String line;
             while (!(line = in.readLine()).equals("END")) {
                 String[] parts = line.split("\\|");
@@ -254,9 +290,11 @@ private void postArticle() {
                 String title = parts[1];
                 String content = parts[2];
                 int parentId = Integer.parseInt(parts[3]);
-                Article article = new Article(id, title, content, parentId);
-                listModel.addElement(article);
+                int indentLevel = Integer.parseInt(parts[4]);
+                Article article = new Article(id, title, content, parentId,indentLevel);
+                articles.add(article);
             }
+            displayArticlesWithIndentation(articles);
 
             // Update page navigation buttons
             btnPrevPage.setEnabled(currentPage > 0);
@@ -270,19 +308,6 @@ private void postArticle() {
         }
     }
 
-    private Socket connectToServer() throws Exception {
-        String selectedServer = (String) serverList.getSelectedItem();
-        String[] parts = selectedServer.split(":");
-        String serverAddress = parts[0];
-        int serverPort = Integer.parseInt(parts[1]);
-
-        // Add random delay to emulate propagation delay
-        Random random = new Random();
-        int delay = random.nextInt(3000);
-        Thread.sleep(delay);
-
-        return new Socket(serverAddress, serverPort);
-    }
     private void displayArticleContent(Article article) {
         if (article == null) {
             articlesTextArea.setText("");
@@ -290,4 +315,53 @@ private void postArticle() {
             articlesTextArea.setText(article.getContent());
         }
     }
+
+    private Socket connectToServer() throws Exception {
+
+        String selectedServer = (String) serverList.getSelectedItem();
+        String[] parts = selectedServer.split(":");
+        String serverAddress = parts[0];
+        int serverPort = Integer.parseInt(parts[1]);
+
+        // Add random delay to emulate propagation delay
+        Random random = new Random();
+        int delay = random.nextInt(30);
+        Thread.sleep(delay);
+
+        return new Socket(serverAddress, serverPort);
+    }
+    private void disconnectFromServer() {
+        if (connectedSocket != null && !connectedSocket.isClosed()) {
+            try {
+                connectedSocket.close();
+                connectedSocket = null;
+                connectionStatusLabel.setText("Disconnected");
+            } catch (IOException e) {
+                connectionStatusLabel.setText("Disconnection failed");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void displayArticlesWithIndentation(List<Article> articles) {
+        for (Article article : articles) {
+            int indentationLevel = 0;
+            Article currentArticle = article;
+            while (currentArticle.isReply()) {
+                indentationLevel++;
+                currentArticle = findArticleById(articles, currentArticle.getParentId());
+            }
+            listModel.addElement(article);
+        }
+    }
+
+    private Article findArticleById(List<Article> articles, int id) {
+        for (Article article : articles) {
+            if (article.getId() == id) {
+                return article;
+            }
+        }
+        return null;
+    }
+
 }

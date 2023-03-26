@@ -1,35 +1,46 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.net.InetSocketAddress;
 
 public class Server {
     private final int serverPort;
-    private List<Article> articles;
+    private ConcurrentHashMap<Integer, Article> articles;
+    private boolean isCoordinator;
+    private InetSocketAddress coordinatorSocketAddress;
+    private Coordinator coordinator;
 
-    public Server(int serverPort) {
+    public Server(int serverPort, boolean isCoordinator, Coordinator coordinator) {
         this.serverPort = serverPort;
-        this.articles = new ArrayList<>();
+        this.isCoordinator = isCoordinator;
+        this.articles = new ConcurrentHashMap<>();
+        this.coordinator = coordinator;
+        this.coordinatorSocketAddress = coordinator.getCoordinatorSocketAddress();
         startServer();
     }
 
-    public static void main(String[] args) {
-        new Server(8000); // Replace 8000 with your desired server port number
-    }
 
     private void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(serverPort)) {
+            // Redirect standard output to a file based on server port number
+            String logFileName = "server_" + serverPort + ".log";
+            PrintStream fileOut = new PrintStream(new FileOutputStream(logFileName));
+            System.setOut(fileOut);
+
             System.out.println("Server started on port " + serverPort);
             ExecutorService executor = Executors.newCachedThreadPool();
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 executor.submit(() -> handleClientConnection(clientSocket));
+                //write to log file
+                System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+                //write operation to log file
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -44,10 +55,22 @@ public class Server {
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
             String command = in.readLine();
+            if (command == null || command.isEmpty()) {
+                System.out.println("Error: Received empty or null command");
+                return;
+            }
             String[] commandParts = command.split(" ");
             String action = commandParts[0];
 
             switch (action) {
+                case "GENERATE_ARTICLE_ID":
+                    if (isCoordinator) {
+                        out.println(coordinator.generateArticleId());
+                    } else {
+                        System.out.println("Error: Only the coordinator can generate article IDs");
+                        out.println("ERROR");
+                    }
+                    break;
                 case "FETCH_ARTICLES":
                     int startIndex = Integer.parseInt(commandParts[1]);
                     int count = Integer.parseInt(commandParts[2]);
@@ -59,6 +82,18 @@ public class Server {
                     postArticle(out, title, content);
                     break;
                 // Add more commands here
+                case "REPLY_ARTICLE":
+                    System.out.println("Received command: " + command);
+                    if (commandParts.length < 2) {
+                        System.out.println("Error: Invalid command format for REPLY_ARTICLE");
+                        return;
+                    }
+                    int parentId = Integer.parseInt(commandParts[1]);
+                    String replyTitle = in.readLine();
+                    String replyContent = in.readLine();
+                    System.out.println("Parent ID: " + parentId + ", Title: " + replyTitle + ", Content: " + replyContent);
+                    replyArticle(out, parentId, replyTitle, replyContent);
+                    break;
             }
 
             in.close();
@@ -69,21 +104,77 @@ public class Server {
         }
     }
 
+    private int requestArticleIdFromCoordinator() {
+        try (Socket socket = new Socket(coordinatorSocketAddress.getAddress(), coordinatorSocketAddress.getPort());
+             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            out.println("GENERATE_ARTICLE_ID");
+            String response = in.readLine();
+
+            return Integer.parseInt(response);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+
     private synchronized void postArticle(PrintWriter out, String title, String content) {
-        int nextId = articles.size() + 1;
-        Article newArticle = new Article(nextId, title, content, -1);
-        articles.add(newArticle);
+        int nextId = !isCoordinator ? requestArticleIdFromCoordinator() : coordinator.generateArticleId();
+        int parentId = -1;
+        int indentationLevel = 0;
+        Article newArticle = new Article(nextId, title, content, parentId, indentationLevel);
+        articles.put(nextId, newArticle);
         out.println("SUCCESS");
+
+
+        // Implement logic to propagate the new article to other replicas based on the chosen consistency policy
+        // coordinator.propagateArticle(newArticle);
     }
 
     private synchronized void fetchArticles(PrintWriter out, int startIndex, int count) {
-        int endIndex = Math.min(startIndex + count, articles.size());
+        int endIndex = Math.min(startIndex + count, getArticlesCount());
         for (int i = startIndex; i < endIndex; i++) {
             Article article = articles.get(i);
-            out.println(article.getId() + "|" + article.getTitle() + "|" + article.getContent() + "|" + article.getParentId());
+            if (article != null) {
+                int indentationLevel = getIndentationLevel(article.getParentId());
+                out.println(article.getId() + "|" + article.getTitle() + "|" + article.getContent() + "|" + article.getParentId() + "|" + indentationLevel);
+            }
         }
         out.println("END");
     }
 
-    // Add more methods for handling other commands, like posting and replying to articles
+    private synchronized void replyArticle(PrintWriter out, int parentId, String title, String content) {
+        int nextId =  requestArticleIdFromCoordinator();
+        int indentationLevel = getIndentationLevel(parentId) + 1;
+        Article newArticle = new Article(nextId, title, content, parentId, indentationLevel);
+        articles.put(nextId, newArticle);
+        out.println("SUCCESS");
+
+        // Implement logic to propagate the new reply to other replicas based on the chosen consistency policy
+        // coordinator.propagateArticle(newArticle);
+    }
+
+    public int getArticlesCount() {
+        return articles.size();
+    }
+
+    public int getServerPort() {
+        return serverPort;
+    }
+
+    private int getIndentationLevel(int parentId) {
+        if (parentId == -1) {
+            return 0;
+        } else {
+            Article parentArticle = articles.get(parentId);
+            if (parentArticle != null) {
+                return getIndentationLevel(parentArticle.getParentId()) + 1;
+            } else {
+                return 0;
+            }
+        }
+    }
 }

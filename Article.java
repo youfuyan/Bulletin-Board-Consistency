@@ -13,11 +13,14 @@ public class Article {
     private String content;
     private int parentId;
 
-    public Article(int id, String title, String content, int parentId) {
+    private int indentationLevel;
+
+    public Article(int id, String title, String content, int parentId, int indentationLevel) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.parentId = parentId;
+        this.indentationLevel = indentationLevel;
     }
 
     public int getId() {
@@ -56,9 +59,19 @@ public class Article {
         return parentId > 0;
     }
 
+    public int getIndentationLevel() {
+    	return indentationLevel;
+    }
+
+    public void setIndentationLevel(int indentationLevel) {
+    	this.indentationLevel = indentationLevel;
+    }
+
     @Override
     public String toString() {
         String prefix = isReply() ? "Reply to Article " + parentId : "Article";
-        return String.format("%d %s: %s", id, prefix, title);
+        String indentation = " ".repeat(indentationLevel * 4); // Change 4 to the desired number of spaces per indentation level
+        return String.format("%d %s%s: %s", id, indentation, prefix, title);
     }
+
 }
