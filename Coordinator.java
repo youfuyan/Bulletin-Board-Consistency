@@ -32,7 +32,7 @@ public class Coordinator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        articleId = 0;
+        articleId = 1;
     }
 
     public Coordinator() {
@@ -49,7 +49,7 @@ public class Coordinator {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        articleId = 0;
+        articleId = 1;
     }
 
     private void loadServerAddresses(String fileName) throws IOException {
