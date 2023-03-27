@@ -65,5 +65,13 @@ public class Coordinator {
     public void propagateArticle(Article article) {
         // Implement logic to propagate articles based on the chosen consistency policy
         // For example, for sequential consistency, you can use the primary-backup protocol
+        
+        // sequential consistency
+        // Anytime a generating ID is requested, artcile need transmit to coordinator and then back-up to other servers
+        
+
+        //quorum consistency
+
+        //Read-your-Write consistency
     }
 }

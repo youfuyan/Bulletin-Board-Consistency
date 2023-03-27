@@ -103,8 +103,10 @@ public class Server {
                         int id_primary = Integer.parseInt(in.readLine());
                         String title_primary = in.readLine();
                         String content_primary = in.readLine();
-                        acceptArticleForBackup(id_primary,title_primary,content_primary);
-                        sendToBackup(id_primary,title_primary,content_primary);
+                        int parentid_primary = Integer.parseInt(in.readLine());
+                        int indentationLevel_primary = Integer.parseInt(in.readLine());
+                        acceptArticleForBackup(id_primary,title_primary,content_primary,parentid_primary,indentationLevel_primary);
+                        sendToBackup(id_primary,title_primary,content_primary,parentid_primary,indentationLevel_primary);
                     } else {
                         log(logOutput, "Error: Only the coordinator can achieve primary update");
                         out.println("ERROR");
@@ -116,7 +118,9 @@ public class Server {
                         int id_backup = Integer.parseInt(in.readLine());
                         String titile_backup = in.readLine();
                         String content_backup = in.readLine();
-                        acceptArticleForBackup(id_backup,titile_backup,content_backup);
+                        int parentid_backup = Integer.parseInt(in.readLine());
+                        int indentationLevel_backup = Integer.parseInt(in.readLine());
+                        acceptArticleForBackup(id_backup,titile_backup,content_backup,parentid_backup,indentationLevel_backup);
                     }else {
                         log(logOutput, "Error: Only the non-coordinator can accept update for back up");
                         out.println("ERROR");
@@ -164,13 +168,14 @@ public class Server {
                         out.println(Integer.toString(newArticle.getId()));
                         out.println(newArticle.getTitle());
                         out.println(newArticle.getContent());
-
+                        out.println(Integer.toString(newArticle.getParentId()));
+                        out.println(Integer.toString(newArticle.getIndentationLevel()));
                     }catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
                 else{
-                    sendToBackup(newArticle.getId(),newArticle.getTitle(),newArticle.getContent());
+                    sendToBackup(newArticle.getId(),newArticle.getTitle(),newArticle.getContent(),newArticle.getParentId(),newArticle.getIndentationLevel());
                 }
                 break;
             case "Quorum":
@@ -180,14 +185,12 @@ public class Server {
         }
     }
 
-    private void acceptArticleForBackup(int id, String title, String content){
-        int parentId = -1;
-        int indentationLevel = 0;
-        Article newArticle = new Article(id, title, content, parentId, indentationLevel);
+    private void acceptArticleForBackup(int id, String title, String content,int parentid,int indentationLevel){
+        Article newArticle = new Article(id, title, content, parentid, indentationLevel);
         articles.put(id, newArticle);
     }
     
-    private void sendToBackup(int id, String title, String content){
+    private void sendToBackup(int id, String title, String content,int parentid,int indentationLevel){
         try{
             for(InetSocketAddress serveraddress:coordinator.getServerSocketAddressList()){
                 Socket serverSocket = new Socket(serveraddress.getAddress(),serveraddress.getPort());
@@ -196,6 +199,8 @@ public class Server {
                 serverout.println(Integer.toString(id));
                 serverout.print(title);
                 serverout.println(content);
+                serverout.println(Integer.toString(parentid));
+                serverout.println(Integer.toString(indentationLevel));
                 }  
             }catch (IOException e) {
                 e.printStackTrace();
@@ -211,8 +216,6 @@ public class Server {
         articles.put(nextId, newArticle);
         synData(newArticle);
         out.println("SUCCESS");
-
-
         // Implement logic to propagate the new article to other replicas based on the chosen consistency policy
         // coordinator.propagateArticle(newArticle);
     }
@@ -234,6 +237,7 @@ public class Server {
         int indentationLevel = getIndentationLevel(parentId) + 1;
         Article newArticle = new Article(nextId, title, content, parentId, indentationLevel);
         articles.put(nextId, newArticle);
+        synData(newArticle);
         out.println("SUCCESS");
 
         // Implement logic to propagate the new reply to other replicas based on the chosen consistency policy
