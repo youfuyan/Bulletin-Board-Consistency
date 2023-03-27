@@ -3,41 +3,68 @@ Client connected from 127.0.0.1
 Client connected from 127.0.0.1
 Received command: FETCH_ARTICLES 0 5
 Sent 5 articles starting from index 0
-Error: Received empty or null command
-Client connected from 127.0.0.1
-Client connected from 127.0.0.1
-Received command: FETCH_ARTICLES 0 5
-Sent 5 articles starting from index 0
-Error: Received empty or null command
-Client connected from 127.0.0.1
-Client connected from 127.0.0.1
-Received command: FETCH_ARTICLES 0 5
-Sent 5 articles starting from index 0
-Error: Received empty or null command
-Client connected from 127.0.0.1
-Client connected from 127.0.0.1
-Received command: FETCH_ARTICLES 0 5
-Sent 5 articles starting from index 0
 Client connected from 127.0.0.1
 Received command: POST_ARTICLE
-Posted article with title: test
 Client connected from 127.0.0.1
-Received command: FETCH_ARTICLES 0 5
-Sent 5 articles starting from index 0
-Error: Received empty or null command
-Client connected from 127.0.0.1
-Client connected from 127.0.0.1
-Received command: FETCH_ARTICLES 0 5
-Sent 5 articles starting from index 0
-Error: Received empty or null command
-Client connected from 127.0.0.1
+Posted article with title: sdf as
 Client connected from 127.0.0.1
 Received command: FETCH_ARTICLES 0 5
 Sent 5 articles starting from index 0
 Client connected from 127.0.0.1
-Received command: REPLY_ARTICLE 0
+Received command: REPLY_ARTICLE 1
 Client connected from 127.0.0.1
-Parent ID: 0, Title: repy, Content: repy
+Client connected from 127.0.0.1
+Parent ID: 1, Title: df asd f, Content: asd fsa f
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: REPLY_ARTICLE 2
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Parent ID: 2, Title: sdaf sadf, Content: sdf saf sa
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: REPLY_ARTICLE 2
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Parent ID: 2, Title: sd fas, Content: asdf as
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: REPLY_ARTICLE 3
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Parent ID: 3, Title: asd fas, Content: sadf as fsa
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 5 5
+Sent 5 articles starting from index 5
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: REPLY_ARTICLE 5
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Parent ID: 5, Title: sa fsa fa f, Content: sadf asf asf
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 5 5
+Sent 5 articles starting from index 5
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 5 5
+Sent 5 articles starting from index 5
 Client connected from 127.0.0.1
 Received command: FETCH_ARTICLES 0 5
 Sent 5 articles starting from index 0
