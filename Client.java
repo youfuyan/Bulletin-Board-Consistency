@@ -45,7 +45,7 @@ public class Client {
 
     private void initialize() {
         frame = new JFrame();
-        frame.setBounds(100, 100, 700, 300);
+        frame.setBounds(100, 100, 1000, 400);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().setLayout(new BorderLayout(0, 0));
 
@@ -91,6 +91,11 @@ public class Client {
         btnReply.setEnabled(false);
         panel.add(btnReply);
 
+        JButton btnRead = new JButton("Read");
+        btnRead.addActionListener(e -> readArticle());
+        btnRead.setEnabled(false);
+        panel.add(btnRead);
+
         JSplitPane splitPane = new JSplitPane();
         frame.getContentPane().add(splitPane, BorderLayout.CENTER);
 
@@ -108,6 +113,7 @@ public class Client {
             if (!e.getValueIsAdjusting()) {
                 selectedArticle = articleList.getSelectedValue();
                 btnReply.setEnabled(selectedArticle != null);
+                btnRead.setEnabled(selectedArticle != null);
                 displayArticleContent(selectedArticle);
             }
         });
@@ -254,6 +260,35 @@ public class Client {
             }
         }
 
+    }
+
+    private void readArticle() {
+        if (selectedArticle == null) {
+            return;
+        }
+
+        // Create a new JPanel for displaying the article title and content
+        JPanel readPanel = new JPanel();
+        readPanel.setLayout(new BorderLayout());
+
+        JLabel titleLabel = new JLabel("Title: " + selectedArticle.getTitle());
+        readPanel.add(titleLabel, BorderLayout.NORTH);
+
+        JTextArea contentArea = new JTextArea(selectedArticle.getContent());
+        contentArea.setEditable(false);
+        contentArea.setLineWrap(true);
+        contentArea.setWrapStyleWord(true);
+        contentArea.setPreferredSize(new Dimension(400, 300));
+        JScrollPane scrollPane = new JScrollPane(contentArea);
+        readPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Show the readPanel in a new JFrame or JDialog
+        JFrame readFrame = new JFrame("Read Article");
+        readFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        readFrame.setContentPane(readPanel);
+        readFrame.pack();
+        readFrame.setLocationRelativeTo(null); // Center the frame
+        readFrame.setVisible(true);
     }
 
 
