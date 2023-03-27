@@ -291,6 +291,12 @@ public class Client {
                 articles.add(article);
             }
             displayArticlesWithIndentation(articles);
+            // Debugging information
+            System.out.println("Current Page: " + currentPage);
+            System.out.println("Articles fetched: " + articles.size());
+            for (Article article : articles) {
+                System.out.println(article.getId() + " | " + article.getTitle());
+            }
 
             // Update page navigation buttons
             btnPrevPage.setEnabled(currentPage > 0);
@@ -343,7 +349,7 @@ public class Client {
         for (Article article : articles) {
             int indentationLevel = 0;
             Article currentArticle = article;
-            while (currentArticle.isReply()) {
+            while (currentArticle != null && currentArticle.isReply()) {
                 indentationLevel++;
                 currentArticle = findArticleById(articles, currentArticle.getParentId());
             }
