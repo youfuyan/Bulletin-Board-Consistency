@@ -73,14 +73,10 @@ public class Client {
         btnConnect.addActionListener(e -> {
             if (connectedSocket != null && !connectedSocket.isClosed()) {
                 disconnectFromServer();
+                btnConnect.setText("Connect");
             } else {
-                try {
-                    connectedSocket = connectToServer();
-                    connectionStatusLabel.setText("Connected to: " + serverList.getSelectedItem());
-                } catch (Exception ex) {
-                    connectionStatusLabel.setText("Connection failed");
-                    ex.printStackTrace();
-                }
+                connectAndUpdate();
+                btnConnect.setText("Disconnect");
             }
         });
         panel.add(btnConnect);
@@ -143,7 +139,7 @@ public class Client {
         scrollPane2.setViewportView(articlesTextArea);
 
         currentPage = 0;
-        refreshArticleList();
+//        refreshArticleList();
 
     }
 
@@ -352,6 +348,17 @@ public class Client {
                 currentArticle = findArticleById(articles, currentArticle.getParentId());
             }
             listModel.addElement(article);
+        }
+    }
+
+    private void connectAndUpdate() {
+        try {
+            connectedSocket = connectToServer();
+            refreshArticleList();
+            connectionStatusLabel.setText("Connected to: " + serverList.getSelectedItem());
+        } catch (Exception ex) {
+            connectionStatusLabel.setText("Connection failed");
+            ex.printStackTrace();
         }
     }
 
