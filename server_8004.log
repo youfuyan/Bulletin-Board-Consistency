@@ -1,5 +1,3 @@
 Server started on port 8004
 Client connected from 127.0.0.1
 Client connected from 127.0.0.1
-Received command: FETCH_ARTICLES 0 5
-Sent 5 articles starting from index 0

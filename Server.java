@@ -154,7 +154,7 @@ public class Server {
                 case "COORD_QUORUM":
                     if(isCoordinator){
                         String mode = in.readLine();
-                        if(mode == "Write_Request") {
+                        if(mode.equals("Write_Request")) {
                             int id_backup = Integer.parseInt(in.readLine());
                             String titile_backup = in.readLine();
                             String content_backup = in.readLine();
@@ -163,7 +163,8 @@ public class Server {
                             requestRandomQuorumW(id_backup, titile_backup, content_backup, parentid_backup, indentationLevel_backup);
                         }else{
                             int id = Integer.parseInt(in.readLine());
-                            requestRandomQuorumR(id);
+                            int mincount = Integer.parseInt(in.readLine());
+                            requestRandomQuorumR(id,mincount);
                         }
 
                     }else {
@@ -181,11 +182,12 @@ public class Server {
                     break;
                 case "READ_QUORUM":
                     int id =Integer.parseInt(in.readLine());
+                    int mincount = Integer.parseInt(in.readLine());
                     if(id!=0){
                         sendChooseToClient(out,id);
                     }
                     else{
-                        acknowledegeArticlecount();
+                        acknowledegeArticlecount(mincount);
                     }
                     break;
                 case "SYN_QUORUM":
@@ -244,7 +246,7 @@ public class Server {
         }
     }
 
-    private void synReadData(){
+    private void synReadData(int id,int count){
         switch (Policy){
             case "Quorum":
                 try{
@@ -252,6 +254,8 @@ public class Server {
                     PrintWriter out = new PrintWriter(serverSocket.getOutputStream(),true);
                     out.println("COORD_QUORUM");
                     out.println("Read_Request");
+                    out.println(Integer.toString(id));
+                    out.println(Integer.toString(count));
                 } catch (IOException e){
                     e.printStackTrace();
                 }
@@ -353,7 +357,7 @@ public class Server {
         }
     }
 
-    private void requestRandomQuorumR(int id){
+    private void requestRandomQuorumR(int id,int mincount){
         try{
             Random rand = new Random();
             Set<Integer> randSet = new HashSet<Integer>();
@@ -367,26 +371,29 @@ public class Server {
                 PrintWriter serverout = new PrintWriter(serverSocket.getOutputStream(),true);
                 serverout.println("READ_QUORUM");
                 serverout.println(id);
+                serverout.println(mincount);
             }
         }catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private synchronized void acknowledegeArticlecount(){
+    private synchronized void acknowledegeArticlecount(int mincount){
         try{
             coordinator.addReadQuorum(serverPort,getArticlesCount());
             if(coordinator.getReadQuorum().size()==2*Nr){
                 int maxcount = coordinator.getReadQuorum().get(1);
                 int maxport = coordinator.getReadQuorum().get(0);
                 for(int i =0;i<Nr;i++){
-                    if(coordinator.getReadQuorum().get(i*2+1)>maxcount)
-                        maxcount = coordinator.getReadQuorum().get(i*2+1);
-                        maxport = coordinator.getReadQuorum().get(i*2);
+                    if(coordinator.getReadQuorum().get(i*2+1)>maxcount) {
+                        maxcount = coordinator.getReadQuorum().get(i * 2 + 1);
+                        maxport = coordinator.getReadQuorum().get(i * 2);
+                    }
                 }
                 Socket serverSocket = new Socket(coordinatorSocketAddress.getAddress(),maxport);
                 PrintWriter out = new PrintWriter(serverSocket.getOutputStream(),true);
                 out.println("SYN_QUORUM");
+                out.println(Integer.toString(mincount));
             }
         }catch (IOException e) {
             e.printStackTrace();
@@ -403,8 +410,8 @@ public class Server {
     }
 
     private synchronized void fetchArticles(PrintWriter out, int startIndex, int count) {
-        if(Policy == "Quorum-1")
-            synReadData();
+        if(Policy.equals("Quorum-1"))
+            synReadData(0,getArticlesCount());
         else {
             int endIndex = Math.min(startIndex + count, getArticlesCount());
             for (int i = startIndex; i < endIndex + 1; i++) {

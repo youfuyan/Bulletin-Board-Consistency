@@ -1,1 +1,18 @@
 Server started on port 8002
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Client connected from 127.0.0.1
+Received command: POST_ARTICLE
+Posted article with title: asda
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Error: Received empty or null command
+Client connected from 127.0.0.1
+Client connected from 127.0.0.1
+Received command: FETCH_ARTICLES 0 5
+Sent 5 articles starting from index 0
+Error: Received empty or null command
