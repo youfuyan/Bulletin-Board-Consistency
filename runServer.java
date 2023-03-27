@@ -7,7 +7,7 @@ import java.util.List;
 public class runServer {
     public static void main(String[] args) {
         // create a coordinator instance
-        Coordinator coordinator = new Coordinator("sequential");
+        Coordinator coordinator = new Coordinator();
 
         // Create an ExecutorService to run servers in separate threads
         ExecutorService executor = Executors.newFixedThreadPool(6);
