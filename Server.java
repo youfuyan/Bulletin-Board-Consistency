@@ -153,9 +153,9 @@ public class Server {
                     break;
                 case "COORD_QUORUM":
                     if(isCoordinator){
-                        int id_backup = Integer.parseInt(in.readLine());
                         String mode = in.readLine();
                         if(mode == "Write_Request") {
+                            int id_backup = Integer.parseInt(in.readLine());
                             String titile_backup = in.readLine();
                             String content_backup = in.readLine();
                             int parentid_backup = Integer.parseInt(in.readLine());
@@ -403,7 +403,7 @@ public class Server {
     }
 
     private synchronized void fetchArticles(PrintWriter out, int startIndex, int count) {
-        if(Policy == "Quorum")
+        if(Policy == "Quorum-1")
             synReadData();
         else {
             int endIndex = Math.min(startIndex + count, getArticlesCount());
