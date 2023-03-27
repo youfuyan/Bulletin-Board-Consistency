@@ -23,6 +23,7 @@ public class Server {
         this.articles = new ConcurrentHashMap<>();
         this.coordinator = coordinator;
         this.coordinatorSocketAddress = coordinator.getCoordinatorSocketAddress();
+        this.Policy = coordinator.getConsistencyPolicy();
         startServer();
     }
 
@@ -181,14 +182,15 @@ public class Server {
                 case "READ_QUORUM":
                     int id =Integer.parseInt(in.readLine());
                     if(id!=0){
-                        sendChooseToClient();
+                        sendChooseToClient(out,id);
                     }
                     else{
                         acknowledegeArticlecount();
                     }
                     break;
                 case "SYN_QUORUM":
-                        sendRedToclient();
+                    int requestedId = Integer.parseInt(in.readLine());
+                    sendReadToclient(out, requestedId);
                     break;
             }
 
@@ -204,7 +206,29 @@ public class Server {
         logOutput.println(message);
     }
 
-    private int requestArticleIdFromCoordinator() {
+    private void sendChooseToClient(PrintWriter out, int id) {
+        Article article = articles.get(id);
+        if (article != null) {
+            int indentationLevel = getIndentationLevel(article.getParentId());
+            out.println(article.getId() + "|" + article.getTitle() + "|" + article.getContent() + "|" + article.getParentId() + "|" + indentationLevel);
+        }
+        out.println("END");
+    }
+
+    private void sendReadToclient(PrintWriter out, int id) {
+        int endIndex = Math.min(id + 1, getArticlesCount());
+        for (int i = id; i < endIndex; i++) {
+            Article article = articles.get(i);
+            if (article != null) {
+                int indentationLevel = getIndentationLevel(article.getParentId());
+                out.println(article.getId() + "|" + article.getTitle() + "|" + article.getContent() + "|" + article.getParentId() + "|" + indentationLevel);
+            }
+        }
+        out.println("END");
+    }
+
+
+    private synchronized int requestArticleIdFromCoordinator() {
         try (Socket socket = new Socket(coordinatorSocketAddress.getAddress(), coordinatorSocketAddress.getPort());
              PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
@@ -305,7 +329,7 @@ public class Server {
             }
     }
 
-    private void requestRandomQuorumW(int id, String title, String content,int parentid,int indentationLevel){
+    private synchronized void requestRandomQuorumW(int id, String title, String content,int parentid,int indentationLevel){
         try{
             Random rand = new Random();
             Set<Integer> randSet = new HashSet<Integer>();
@@ -349,7 +373,7 @@ public class Server {
         }
     }
 
-    private void acknowledegeArticlecount(){
+    private synchronized void acknowledegeArticlecount(){
         try{
             coordinator.addReadQuorum(serverPort,getArticlesCount());
             if(coordinator.getReadQuorum().size()==2*Nr){
@@ -376,8 +400,6 @@ public class Server {
         articles.put(nextId, newArticle);
         synWriteData(newArticle);
         out.println("SUCCESS");
-        // Implement logic to propagate the new article to other replicas based on the chosen consistency policy
-        // coordinator.propagateArticle(newArticle);
     }
 
     private synchronized void fetchArticles(PrintWriter out, int startIndex, int count) {
@@ -404,8 +426,6 @@ public class Server {
         synWriteData(newArticle);
         out.println("SUCCESS");
 
-        // Implement logic to propagate the new reply to other replicas based on the chosen consistency policy
-        // coordinator.propagateArticle(newArticle);
     }
 
     public int getArticlesCount() {
@@ -428,6 +448,7 @@ public class Server {
             }
         }
     }
+
 
 
 }

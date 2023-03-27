@@ -38,8 +38,9 @@ The runServer.java will set up the coordinator and server from the `server_addre
 
 - (Optional) If you want to change the server list, you can change the `server_addresses.txt` file before run the `runServer.java` main function
 
-1. Go to `Client.java` and run the main function
-
+5. Go to `Client.java` and run the main function
+6. Server log can be found in `server_[PORT].txt`, go to terminal and use `tail -f server_[PORT].txt` to see the log in real time.
+7. Operation time log can be found in `OperationTime_Server[PORT].txt`, go to terminal and use `tail -f OperationTime_Server[PORT].txt` to see the log in real time.
 ## Cost Analysis for different consistency
 
 ### Sequential Consistency

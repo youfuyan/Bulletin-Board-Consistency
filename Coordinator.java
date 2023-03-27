@@ -14,15 +14,16 @@ public class Coordinator {
 
     private String consistencyPolicy;
 
-    private final String SEQUENTIAL = "sequential";
-    private final String QUORUM = "quorum";
-    private final String READ_YOUR_WRITES = "read_your_writes";
+    private final String SEQUENTIAL = "Sequential";
+    private final String QUORUM = "Quorum";
+    private final String READ_YOUR_WRITES = "Read-your-Write";
 
     private ArrayList<Integer> port_articlecount = new ArrayList<Integer>();
 
     public Coordinator(String consistencyPolicy) {
         this.serverAddresses = new ArrayList<>();
         this.consistencyPolicy = consistencyPolicy;
+        System.out.println("Consistency Policy: " + consistencyPolicy);
         try {
             loadServerAddresses("server_addresses.txt");
             if (!serverAddresses.isEmpty()) {
@@ -52,6 +53,13 @@ public class Coordinator {
             e.printStackTrace();
         }
         articleId = 1;
+    }
+    public String getConsistencyPolicy() {
+        return consistencyPolicy;
+    }
+
+    public void setConsistencyPolicy(String consistencyPolicy) {
+        this.consistencyPolicy = consistencyPolicy;
     }
 
     private void loadServerAddresses(String fileName) throws IOException {
@@ -116,16 +124,16 @@ public class Coordinator {
         return this.port_articlecount;
     }
 
-    public void propagateArticle(Article article) {
-        // Implement logic to propagate articles based on the chosen consistency policy
-        // For example, for sequential consistency, you can use the primary-backup protocol
-        
-        // sequential consistency
-        // Anytime a generating ID is requested, artcile need transmit to coordinator and then back-up to other servers
-        
-
-        //quorum consistency
-
-        //Read-your-Write consistency
-    }
+//    public void propagateArticle(Article article) {
+//        // Implement logic to propagate articles based on the chosen consistency policy
+//        // For example, for sequential consistency, you can use the primary-backup protocol
+//
+//        // sequential consistency
+//        // Anytime a generating ID is requested, artcile need transmit to coordinator and then back-up to other servers
+//
+//
+//        //quorum consistency
+//
+//        //Read-your-Write consistency
+//    }
 }
