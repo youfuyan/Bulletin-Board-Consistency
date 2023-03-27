@@ -359,7 +359,7 @@ public class Server {
 
     private synchronized void fetchArticles(PrintWriter out, int startIndex, int count) {
         int endIndex = Math.min(startIndex + count, getArticlesCount());
-        for (int i = startIndex; i < endIndex; i++) {
+        for (int i = startIndex; i < endIndex + 1; i++) {
             Article article = articles.get(i);
             if (article != null) {
                 int indentationLevel = getIndentationLevel(article.getParentId());

@@ -56,7 +56,7 @@ public class Article {
     }
 
     public boolean isReply() {
-        return parentId > 0;
+        return parentId >= 0;
     }
 
     public int getIndentationLevel() {
