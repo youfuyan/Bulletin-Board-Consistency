@@ -14,6 +14,7 @@ public class Server {
     private boolean isCoordinator;
     private InetSocketAddress coordinatorSocketAddress;
     private Coordinator coordinator;
+    static String Policy = "Sequential";
 
     public Server(int serverPort, boolean isCoordinator, Coordinator coordinator) {
         this.serverPort = serverPort;
@@ -96,6 +97,31 @@ public class Server {
                     replyArticle(out, parentId, replyTitle, replyContent);
                     log(logOutput, "Parent ID: " + parentId + ", Title: " + replyTitle + ", Content: " + replyContent);
                     break;
+                // coordinator accept new update
+                case "PRIMARY_UPDATE":
+                    if (isCoordinator) {
+                        int id_primary = Integer.parseInt(in.readLine());
+                        String title_primary = in.readLine();
+                        String content_primary = in.readLine();
+                        acceptArticleForBackup(id_primary,title_primary,content_primary);
+                        sendToBackup(id_primary,title_primary,content_primary);
+                    } else {
+                        log(logOutput, "Error: Only the coordinator can achieve primary update");
+                        out.println("ERROR");
+                    }
+                    break;
+                // coordinator send update to other servers
+                case "BACK_UP":
+                    if(!isCoordinator){
+                        int id_backup = Integer.parseInt(in.readLine());
+                        String titile_backup = in.readLine();
+                        String content_backup = in.readLine();
+                        acceptArticleForBackup(id_backup,titile_backup,content_backup);
+                    }else {
+                        log(logOutput, "Error: Only the non-coordinator can accept update for back up");
+                        out.println("ERROR");
+                    }
+                    break;
             }
 
             in.close();
@@ -127,6 +153,55 @@ public class Server {
         }
     }
 
+    private void synData(Article newArticle){
+        switch(Policy){
+            case "Sequential":
+                if(!isCoordinator){
+                    try{
+                        Socket socket = new Socket(coordinatorSocketAddress.getAddress(),coordinatorSocketAddress.getPort());
+                        PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
+                        out.println("PRIMARY_UPDATE");
+                        out.println(Integer.toString(newArticle.getId()));
+                        out.println(newArticle.getTitle());
+                        out.println(newArticle.getContent());
+
+                    }catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else{
+                    sendToBackup(newArticle.getId(),newArticle.getTitle(),newArticle.getContent());
+                }
+                break;
+            case "Quorum":
+                break;
+            case "Read-your-Write":
+                break;
+        }
+    }
+
+    private void acceptArticleForBackup(int id, String title, String content){
+        int parentId = -1;
+        int indentationLevel = 0;
+        Article newArticle = new Article(id, title, content, parentId, indentationLevel);
+        articles.put(id, newArticle);
+    }
+    
+    private void sendToBackup(int id, String title, String content){
+        try{
+            for(InetSocketAddress serveraddress:coordinator.getServerSocketAddressList()){
+                Socket serverSocket = new Socket(serveraddress.getAddress(),serveraddress.getPort());
+                PrintWriter serverout = new PrintWriter(serverSocket.getOutputStream(),true);
+                serverout.print("BACK_UP");
+                serverout.println(Integer.toString(id));
+                serverout.print(title);
+                serverout.println(content);
+                }  
+            }catch (IOException e) {
+                e.printStackTrace();
+            }
+    }
+
 
     private synchronized void postArticle(PrintWriter out, String title, String content) {
         int nextId = !isCoordinator ? requestArticleIdFromCoordinator() : coordinator.generateArticleId();
@@ -134,6 +209,7 @@ public class Server {
         int indentationLevel = 0;
         Article newArticle = new Article(nextId, title, content, parentId, indentationLevel);
         articles.put(nextId, newArticle);
+        synData(newArticle);
         out.println("SUCCESS");
 
 
@@ -184,4 +260,6 @@ public class Server {
             }
         }
     }
+
+
 }
