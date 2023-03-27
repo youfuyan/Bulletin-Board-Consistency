@@ -26,6 +26,8 @@ public class Client {
     private int currentPage;
     private int articlesPerPage = 5;
 
+    private long operationTime;
+
     private Coordinator coordinator = new Coordinator();
 
     public static void main(String[] args) {
@@ -176,7 +178,8 @@ public class Client {
                 JOptionPane.showMessageDialog(null, "Both title and content must be provided.");
                 return;
             }
-
+            // Wrap the code block with a timer to measure the time it takes to post an article
+            long startTime = System.nanoTime();
             try {
                 Socket socket = connectToServer();
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -201,6 +204,9 @@ public class Client {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            long endTime = System.nanoTime();
+            operationTime = endTime - startTime;
+            saveOperationTime(connectedSocket.getLocalPort(), "post",operationTime);
         }
     }
 
@@ -233,7 +239,8 @@ public class Client {
                 JOptionPane.showMessageDialog(null, "Both title and content must be provided.");
                 return;
             }
-
+            // Wrap the code block with a timer to measure the time it takes to post a reply
+            long startTime = System.nanoTime();
             try {
                 Socket socket = connectToServer();
                 PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -258,6 +265,9 @@ public class Client {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+            long endTime = System.nanoTime();
+            operationTime = endTime - startTime;
+            saveOperationTime(connectedSocket.getLocalPort(), "reply",operationTime);
         }
 
     }
@@ -305,6 +315,8 @@ public class Client {
     }
 
     private void refreshArticleList() {
+        // Wrap the code block with a timer to measure the time it takes to fetch articles
+        long startTime = System.nanoTime();
         try {
             Socket socket = connectToServer();
             PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
@@ -343,6 +355,9 @@ public class Client {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        long endTime = System.nanoTime();
+        operationTime = endTime - startTime;
+        saveOperationTime(connectedSocket.getLocalPort(), "fetch",operationTime);
     }
 
     private void displayArticleContent(Article article) {
@@ -410,6 +425,17 @@ public class Client {
             }
         }
         return null;
+    }
+
+    private void saveOperationTime(int serverPort, String operation, long operationTime) {
+        String filename = "OperationTime_" + "Server" + serverPort + ".txt";
+        try (FileWriter fw = new FileWriter(filename, true);
+             BufferedWriter bw = new BufferedWriter(fw);
+             PrintWriter out = new PrintWriter(bw)) {
+            out.println(operation + ", " + operationTime/1000000);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
