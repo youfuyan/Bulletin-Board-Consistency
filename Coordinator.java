@@ -109,43 +109,13 @@ public class Coordinator {
     public void propagateArticle(Article article) {
         // Implement logic to propagate articles based on the chosen consistency policy
         // For example, for sequential consistency, you can use the primary-backup protocol
-        if (consistencyPolicy.equals(SEQUENTIAL)) {
-            propagateSequentialConsistency(article);
-        } else if (consistencyPolicy.equals(QUORUM)) {
-            // Implement logic to propagate articles to other replicas
-        } else if (consistencyPolicy.equals(READ_YOUR_WRITES)) {
-            // Implement logic to propagate articles to other replicas
-        }
-    }
+        
+        // sequential consistency
+        // Anytime a generating ID is requested, artcile need transmit to coordinator and then back-up to other servers
+        
 
-    public void propagateSequentialConsistency(Article article) {
-        // Implement the primary-backup protocol here
-        // The coordinator can act as the primary server, and it can propagate the new article to all other servers
-        for (InetSocketAddress address : getServerSocketAddressList()) {
-            // Skip the coordinator's own address
-            if (address.equals(getCoordinatorSocketAddress())) {
-                continue;
-            }
+        //quorum consistency
 
-            // Create a ServerAPI instance for the target server
-            ServerAPI serverAPI = new ServerAPI(address);
-
-            // Send the article to the target server
-            try {
-                serverAPI.sendArticle(article);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    public void propagateQuorumConsistency(Article article) {
-        // Implement the quorum consistency protocol here
-        // The coordinator can act as the primary server, and it can propagate the new article to all other servers
-    }
-
-    public void propagateReadYourWritesConsistency(Article article) {
-        // Implement the read-your-writes consistency protocol here
-        // The coordinator can act as the primary server, and it can propagate the new article to all other servers
+        //Read-your-Write consistency
     }
 }
