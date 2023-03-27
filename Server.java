@@ -1,8 +1,7 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,6 +14,8 @@ public class Server {
     private InetSocketAddress coordinatorSocketAddress;
     private Coordinator coordinator;
     static String Policy = "Sequential";
+    static int Nr = 3;
+    static int Nw = 4;
 
     public Server(int serverPort, boolean isCoordinator, Coordinator coordinator) {
         this.serverPort = serverPort;
@@ -28,6 +29,10 @@ public class Server {
 
     private void startServer() {
         try (ServerSocket serverSocket = new ServerSocket(serverPort)) {
+
+//            ServerSocket socket2 = new ServerSocket(serverPort);
+//            SocketforServerThread(socket2);
+
             // Redirect standard output to a file based on server port number
             String logFileName = "server_" + serverPort + ".log";
             PrintStream fileOut = new PrintStream(new FileOutputStream(logFileName));
@@ -44,6 +49,10 @@ public class Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private void SocketforServerThread(ServerSocket socket){
+
     }
 
     public void startSynchronizationThread() {
@@ -141,6 +150,43 @@ public class Server {
                         out.println("ERROR");
                     }
                     break;
+                case "COORD_QUORUM":
+                    if(isCoordinator){
+                        int id_backup = Integer.parseInt(in.readLine());
+                        String mode = in.readLine();
+                        if(mode == "Write_Request") {
+                            String titile_backup = in.readLine();
+                            String content_backup = in.readLine();
+                            int parentid_backup = Integer.parseInt(in.readLine());
+                            int indentationLevel_backup = Integer.parseInt(in.readLine());
+                            requestRandomQuorumW(id_backup, titile_backup, content_backup, parentid_backup, indentationLevel_backup);
+                        }else{
+                            int id = Integer.parseInt(in.readLine());
+                            requestRandomQuorumR(id);
+                        }
+
+                    }else {
+                        log(logOutput, "Error: Only the coordinator can look for random quorum");
+                        out.println("ERROR");
+                    }
+                    break;
+                case "WRITE_QUORUM":
+                    int id_backup = Integer.parseInt(in.readLine());
+                    String titile_backup = in.readLine();
+                    String content_backup = in.readLine();
+                    int parentid_backup = Integer.parseInt(in.readLine());
+                    int indentationLevel_backup = Integer.parseInt(in.readLine());
+                    acceptArticleForBackup(id_backup,titile_backup,content_backup,parentid_backup,indentationLevel_backup);
+                    break;
+                case "READ_QUORUM":
+                    int id =Integer.parseInt(in.readLine());
+                    if(id!=0){
+
+                    }
+                    else{
+
+                    }
+                    break;
             }
 
             in.close();
@@ -154,7 +200,6 @@ public class Server {
     private void log(PrintStream logOutput, String message) {
         logOutput.println(message);
     }
-
 
     private int requestArticleIdFromCoordinator() {
         try (Socket socket = new Socket(coordinatorSocketAddress.getAddress(), coordinatorSocketAddress.getPort());
@@ -172,13 +217,28 @@ public class Server {
         }
     }
 
-    private void synData(Article newArticle){
+    private void synReadData(){
+        switch (Policy){
+            case "Quorum":
+                try{
+                    Socket serverSocket = new Socket(coordinatorSocketAddress.getAddress(),coordinatorSocketAddress.getPort());
+                    PrintWriter out = new PrintWriter(serverSocket.getOutputStream(),true);
+                    out.println("COORD_QUORUM");
+                    out.println("Read_Request");
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+                break;
+        }
+    }
+
+    private void synWriteData(Article newArticle){
         switch(Policy){
             case "Sequential":
                 if(!isCoordinator){
                     try{
-                        Socket socket = new Socket(coordinatorSocketAddress.getAddress(),coordinatorSocketAddress.getPort());
-                        PrintWriter out = new PrintWriter(socket.getOutputStream(),true);
+                        Socket serverSocket = new Socket(coordinatorSocketAddress.getAddress(),coordinatorSocketAddress.getPort());
+                        PrintWriter out = new PrintWriter(serverSocket.getOutputStream(),true);
                         out.println("PRIMARY_UPDATE");
                         out.println(Integer.toString(newArticle.getId()));
                         out.println(newArticle.getTitle());
@@ -194,6 +254,26 @@ public class Server {
                 }
                 break;
             case "Quorum":
+                if(!isCoordinator){
+                    try{
+                        Socket serverSocket = new Socket(coordinatorSocketAddress.getAddress(),coordinatorSocketAddress.getPort());
+                        PrintWriter out = new PrintWriter(serverSocket.getOutputStream(),true);
+                        out.println("COORD_QUORUM");
+                        out.println("Write_Request");
+                        out.println(Integer.toString(newArticle.getId()));
+                        out.println(newArticle.getTitle());
+                        out.println(newArticle.getContent());
+                        out.println(Integer.toString(newArticle.getParentId()));
+                        out.println(Integer.toString(newArticle.getIndentationLevel()));
+
+                    } catch (IOException e){
+                        e.printStackTrace();
+                    }
+
+                }
+                else{
+                    requestRandomQuorumW(newArticle.getId(),newArticle.getTitle(),newArticle.getContent(),newArticle.getParentId(),newArticle.getIndentationLevel());
+                }
                 break;
             case "Read-your-Write":
                 break;
@@ -210,26 +290,68 @@ public class Server {
             for(InetSocketAddress serveraddress:coordinator.getServerSocketAddressList()){
                 Socket serverSocket = new Socket(serveraddress.getAddress(),serveraddress.getPort());
                 PrintWriter serverout = new PrintWriter(serverSocket.getOutputStream(),true);
-                serverout.print("BACK_UP");
+                serverout.println("BACK_UP");
                 serverout.println(Integer.toString(id));
-                serverout.print(title);
+                serverout.println(title);
                 serverout.println(content);
                 serverout.println(Integer.toString(parentid));
                 serverout.println(Integer.toString(indentationLevel));
-                }  
+                }
             }catch (IOException e) {
                 e.printStackTrace();
             }
     }
 
+    private void requestRandomQuorumW(int id, String title, String content,int parentid,int indentationLevel){
+        try{
+            Random rand = new Random();
+            Set<Integer> randSet = new HashSet<Integer>();
+            while (randSet.size() < Nw) {
+                int randInt = rand.nextInt(6);
+                randSet.add(randInt);
+            }
+            for(int index:randSet){
+                InetSocketAddress serveraddress = coordinator.getServerSocketAddressList().get(index);
+                Socket serverSocket = new Socket(serveraddress.getAddress(),serveraddress.getPort());
+                PrintWriter serverout = new PrintWriter(serverSocket.getOutputStream(),true);
+                serverout.println("WRITE_QUORUM");
+                serverout.println(Integer.toString(id));
+                serverout.println(title);
+                serverout.println(content);
+                serverout.println(Integer.toString(parentid));
+                serverout.println(Integer.toString(indentationLevel));
+            }
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
+    private void requestRandomQuorumR(int id){
+        try{
+            Random rand = new Random();
+            Set<Integer> randSet = new HashSet<Integer>();
+            while (randSet.size() < Nr) {
+                int randInt = rand.nextInt(6);
+                randSet.add(randInt);
+            }
+            for(int index:randSet){
+                InetSocketAddress serveraddress = coordinator.getServerSocketAddressList().get(index);
+                Socket serverSocket = new Socket(serveraddress.getAddress(),serveraddress.getPort());
+                PrintWriter serverout = new PrintWriter(serverSocket.getOutputStream(),true);
+                serverout.println("READ_QUORUM");
+                serverout.println(id);
+            }
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     private synchronized void postArticle(PrintWriter out, String title, String content) {
         int nextId = !isCoordinator ? requestArticleIdFromCoordinator() : coordinator.generateArticleId();
         int parentId = -1;
         int indentationLevel = 0;
         Article newArticle = new Article(nextId, title, content, parentId, indentationLevel);
         articles.put(nextId, newArticle);
-        synData(newArticle);
+        synWriteData(newArticle);
         out.println("SUCCESS");
         // Implement logic to propagate the new article to other replicas based on the chosen consistency policy
         // coordinator.propagateArticle(newArticle);
@@ -252,7 +374,7 @@ public class Server {
         int indentationLevel = getIndentationLevel(parentId) + 1;
         Article newArticle = new Article(nextId, title, content, parentId, indentationLevel);
         articles.put(nextId, newArticle);
-        synData(newArticle);
+        synWriteData(newArticle);
         out.println("SUCCESS");
 
         // Implement logic to propagate the new reply to other replicas based on the chosen consistency policy
