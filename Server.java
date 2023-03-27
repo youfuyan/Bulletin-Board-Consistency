@@ -30,16 +30,14 @@ public class Server {
             // Redirect standard output to a file based on server port number
             String logFileName = "server_" + serverPort + ".log";
             PrintStream fileOut = new PrintStream(new FileOutputStream(logFileName));
-            System.setOut(fileOut);
-
-            System.out.println("Server started on port " + serverPort);
+            log(fileOut, "Server started on port " + serverPort);
             ExecutorService executor = Executors.newCachedThreadPool();
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                executor.submit(() -> handleClientConnection(clientSocket));
+                executor.submit(() -> handleClientConnection(clientSocket, fileOut));
                 //write to log file
-                System.out.println("Client connected from " + clientSocket.getInetAddress().getHostAddress());
+                log(fileOut, "Client connected from " + clientSocket.getInetAddress().getHostAddress());
                 //write operation to log file
             }
         } catch (Exception e) {
@@ -49,14 +47,14 @@ public class Server {
 
 
 
-    private void handleClientConnection(Socket clientSocket) {
+    private void handleClientConnection(Socket clientSocket, PrintStream logOutput) {
         try {
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
             String command = in.readLine();
             if (command == null || command.isEmpty()) {
-                System.out.println("Error: Received empty or null command");
+                log(logOutput, "Error: Received empty or null command");
                 return;
             }
             String[] commandParts = command.split(" ");
@@ -67,32 +65,36 @@ public class Server {
                     if (isCoordinator) {
                         out.println(coordinator.generateArticleId());
                     } else {
-                        System.out.println("Error: Only the coordinator can generate article IDs");
+                        log(logOutput, "Error: Only the coordinator can generate article IDs");
                         out.println("ERROR");
                     }
                     break;
                 case "FETCH_ARTICLES":
+                    log(logOutput, "Received command: " + command);
                     int startIndex = Integer.parseInt(commandParts[1]);
                     int count = Integer.parseInt(commandParts[2]);
                     fetchArticles(out, startIndex, count);
+                    log(logOutput, "Sent " + count + " articles starting from index " + startIndex);
                     break;
                 case "POST_ARTICLE":
+                    log(logOutput, "Received command: " + command);
                     String title = in.readLine();
                     String content = in.readLine();
                     postArticle(out, title, content);
+                    log(logOutput, "Posted article with title: " + title);
                     break;
                 // Add more commands here
                 case "REPLY_ARTICLE":
-                    System.out.println("Received command: " + command);
+                    log(logOutput, "Received command: " + command);
                     if (commandParts.length < 2) {
-                        System.out.println("Error: Invalid command format for REPLY_ARTICLE");
+                        log(logOutput, "Error: Invalid command format for REPLY_ARTICLE");
                         return;
                     }
                     int parentId = Integer.parseInt(commandParts[1]);
                     String replyTitle = in.readLine();
                     String replyContent = in.readLine();
-                    System.out.println("Parent ID: " + parentId + ", Title: " + replyTitle + ", Content: " + replyContent);
                     replyArticle(out, parentId, replyTitle, replyContent);
+                    log(logOutput, "Parent ID: " + parentId + ", Title: " + replyTitle + ", Content: " + replyContent);
                     break;
             }
 
@@ -103,6 +105,11 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    private void log(PrintStream logOutput, String message) {
+        logOutput.println(message);
+    }
+
 
     private int requestArticleIdFromCoordinator() {
         try (Socket socket = new Socket(coordinatorSocketAddress.getAddress(), coordinatorSocketAddress.getPort());
