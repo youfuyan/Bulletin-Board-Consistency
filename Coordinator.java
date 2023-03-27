@@ -18,6 +18,8 @@ public class Coordinator {
     private final String QUORUM = "quorum";
     private final String READ_YOUR_WRITES = "read_your_writes";
 
+    private ArrayList<Integer> port_articlecount = new ArrayList<Integer>();
+
     public Coordinator(String consistencyPolicy) {
         this.serverAddresses = new ArrayList<>();
         this.consistencyPolicy = consistencyPolicy;
@@ -105,6 +107,14 @@ public class Coordinator {
         }
     }
 
+    public void addReadQuorum(int port,int article_count){
+        this.port_articlecount.add(port);
+        this.port_articlecount.add(article_count);
+    }
+
+    public ArrayList<Integer> getReadQuorum(){
+        return this.port_articlecount;
+    }
 
     public void propagateArticle(Article article) {
         // Implement logic to propagate articles based on the chosen consistency policy

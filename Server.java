@@ -181,11 +181,14 @@ public class Server {
                 case "READ_QUORUM":
                     int id =Integer.parseInt(in.readLine());
                     if(id!=0){
-
+                        sendChooseToClient();
                     }
                     else{
-
+                        acknowledegeArticlecount();
                     }
+                    break;
+                case "SYN_QUORUM":
+                        sendRedToclient();
                     break;
             }
 
@@ -345,6 +348,26 @@ public class Server {
             e.printStackTrace();
         }
     }
+
+    private void acknowledegeArticlecount(){
+        try{
+            coordinator.addReadQuorum(serverPort,getArticlesCount());
+            if(coordinator.getReadQuorum().size()==2*Nr){
+                int maxcount = coordinator.getReadQuorum().get(1);
+                int maxport = coordinator.getReadQuorum().get(0);
+                for(int i =0;i<Nr;i++){
+                    if(coordinator.getReadQuorum().get(i*2+1)>maxcount)
+                        maxcount = coordinator.getReadQuorum().get(i*2+1);
+                        maxport = coordinator.getReadQuorum().get(i*2);
+                }
+                Socket serverSocket = new Socket(coordinatorSocketAddress.getAddress(),maxport);
+                PrintWriter out = new PrintWriter(serverSocket.getOutputStream(),true);
+                out.println("SYN_QUORUM");
+            }
+        }catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     private synchronized void postArticle(PrintWriter out, String title, String content) {
         int nextId = !isCoordinator ? requestArticleIdFromCoordinator() : coordinator.generateArticleId();
         int parentId = -1;
@@ -358,15 +381,19 @@ public class Server {
     }
 
     private synchronized void fetchArticles(PrintWriter out, int startIndex, int count) {
-        int endIndex = Math.min(startIndex + count, getArticlesCount());
-        for (int i = startIndex; i < endIndex + 1; i++) {
-            Article article = articles.get(i);
-            if (article != null) {
-                int indentationLevel = getIndentationLevel(article.getParentId());
-                out.println(article.getId() + "|" + article.getTitle() + "|" + article.getContent() + "|" + article.getParentId() + "|" + indentationLevel);
+        if(Policy == "Quorum")
+            synReadData();
+        else {
+            int endIndex = Math.min(startIndex + count, getArticlesCount());
+            for (int i = startIndex; i < endIndex + 1; i++) {
+                Article article = articles.get(i);
+                if (article != null) {
+                    int indentationLevel = getIndentationLevel(article.getParentId());
+                    out.println(article.getId() + "|" + article.getTitle() + "|" + article.getContent() + "|" + article.getParentId() + "|" + indentationLevel);
+                }
             }
+            out.println("END");
         }
-        out.println("END");
     }
 
     private synchronized void replyArticle(PrintWriter out, int parentId, String title, String content) {
