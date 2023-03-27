@@ -12,8 +12,32 @@ public class Coordinator {
 
     private int articleId;
 
+    private String consistencyPolicy;
+
+    private final String SEQUENTIAL = "sequential";
+    private final String QUORUM = "quorum";
+    private final String READ_YOUR_WRITES = "read_your_writes";
+
+    public Coordinator(String consistencyPolicy) {
+        this.serverAddresses = new ArrayList<>();
+        this.consistencyPolicy = consistencyPolicy;
+        try {
+            loadServerAddresses("server_addresses.txt");
+            if (!serverAddresses.isEmpty()) {
+                String[] parts = serverAddresses.get(0).split(":");
+                String host = parts[0];
+                int port = Integer.parseInt(parts[1]);
+                coordinatorSocketAddress = new InetSocketAddress(host, port);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        articleId = 0;
+    }
+
     public Coordinator() {
         this.serverAddresses = new ArrayList<>();
+        this.consistencyPolicy = SEQUENTIAL;
         try {
             loadServerAddresses("server_addresses.txt");
             if (!serverAddresses.isEmpty()) {
@@ -59,6 +83,26 @@ public class Coordinator {
 
     public List<String> getServerAddresses() {
         return serverAddresses;
+    }
+
+    public void synchronizeReplicas() {
+        // Iterate through all server addresses and synchronize the state
+        for (InetSocketAddress address : getServerSocketAddressList()) {
+            // Create a ServerAPI instance for the target server
+            ServerAPI serverAPI = new ServerAPI(address);
+
+            // Retrieve the latest state from the target server
+            try {
+                Article latestArticle = serverAPI.receiveArticle();
+
+                // Update the local state if the received state is more recent
+                if (latestArticle.getId() > articleId) {
+                    articleId = latestArticle.getId();
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 

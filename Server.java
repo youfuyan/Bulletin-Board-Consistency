@@ -39,13 +39,28 @@ public class Server {
                 executor.submit(() -> handleClientConnection(clientSocket, fileOut));
                 //write to log file
                 log(fileOut, "Client connected from " + clientSocket.getInetAddress().getHostAddress());
-                //write operation to log file
+
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    public void startSynchronizationThread() {
+        Thread synchronizationThread = new Thread(() -> {
+            while (true) {
+                coordinator.synchronizeReplicas();
+
+                try {
+                    Thread.sleep(5000); // Sleep for 5 seconds before the next synchronization attempt
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+        synchronizationThread.start();
+    }
 
 
     private void handleClientConnection(Socket clientSocket, PrintStream logOutput) {
